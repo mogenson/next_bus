@@ -3,7 +3,7 @@ import ssd1306
 import utime
 import json
 import network
-from machine import I2C, Pin, RTC
+from machine import I2C, Pin, RTC, reset
 
 rtc = RTC()
 i2c = I2C(scl=Pin(4), sda=Pin(5))
@@ -60,5 +60,11 @@ def next_bus():
 
 if __name__ == '__main__':
     while True:
-        next_bus()
+        try:
+            next_bus()
+        except KeyboardInterrupt:
+            raise
+        except Exception:
+            print("Exception raised: rebooting")
+            reset()
         utime.sleep(60)
