@@ -3,6 +3,12 @@ from writer import Writer
 import freesans20
 import ssd1306
 import time
+import urequests
+
+work = '12.345,12.345'
+home = '12.345,12.345'
+key = 'abcdefghijklmnopqustuvwxyz'
+url = 'https://maps.googleapis.com/maps/api/distancematrix/json?origins={}&destinations={}&departure_time=now&key={}'
 
 # display
 lcd = ssd1306.SSD1306_I2C(128, 64, I2C(scl=Pin(4), sda=Pin(5)))
@@ -26,17 +32,27 @@ def print_time():
 
 
 def print_traffic():
-    s = "traffic"
-    print(s)
+    try:
+        request = urequests.get(url.format(work, home, key))
+        json = request.json()
+        request.close()
+        elements = json.get('rows')[0].get('elements')[0]
+        s = elements.get('duration_in_traffic').get('text')
+    except:
+        s = "error"
 
+    print(s)
     print_ip()
-    writer.set_textpos(20, 40)
+    lcd.text("Drive home is", 8, 0)
+    writer.set_textpos(20, 30)
     writer.printstring(s)
     lcd.show()
 
 
 minute = 0
 counter = 0
+monday = 2
+friday = 6
 
 print_time()
 
@@ -50,7 +66,7 @@ while True:
     minute = tm[4]
 
     # do traffic monday-friday between 4:00 and 4:59 PM
-    if tm[6] < 5 and tm[3] == 16:
+    if tm[6] >= monday and tm[6] <= friday and tm[3] == 16:
         if counter == 0:
             print_traffic()
             counter = 5  # wait 5 minutes before making a new request
