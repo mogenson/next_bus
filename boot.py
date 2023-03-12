@@ -1,22 +1,25 @@
+import time
+
+import utelnetserver
 import network
+import ntptime
 import machine
-import sys
 
-sys.path[1] = '/flash/lib'
+# connect to wifi
+nic = network.WLAN(network.STA_IF)
+nic.active(True)
+nic.connect("THE_INTERNET", "seriesoftubes")
+while not nic.isconnected():
+    time.sleep(1)
+print(nic.ifconfig()[0])
 
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-if not wlan.isconnected():
-    wlan.connect('ssid', 'password')
-    while not wlan.isconnected():
-        pass
+# set time and convert to EST (don't worry about date or year)
+ntptime.settime()
+tm = time.gmtime()
+offset = -5 if tm[3] >= 5 else 19
+machine.RTC().datetime(
+    (tm[0], tm[1], tm[2], tm[6] + 1, tm[3] + offset, tm[4], tm[5], 0)
+)
 
-rtc = machine.RTC()
-if not rtc.synced():
-    rtc.ntp_sync(server='pool.ntp.org', tz='EST5EDT', update_period=3600)
-    while not rtc.synced():
-        pass
-
-network.ftp.start(user='micro', password='python', buffsize=1024, timeout=300)
-network.telnet.start(user='micro', password='python', timeout=300)
-print('IP addr:', wlan.ifconfig()[0])
+# start telnet server
+utelnetserver.start()
