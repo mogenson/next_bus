@@ -1,52 +1,57 @@
-from mbta import get_arrival_times
+from mbta import MBTA
 
 try:
     import asyncio
 except ImportError:
     import uasyncio as asyncio
 
-teele_sq = "2576"
-davis_sq = "70063"
+try:
+    from micropython import const
+except ImportError:
+    const = lambda x: x
+
+TEELE_SQ = const(2576)
+DAVIS_SQ = const(70063)
+UPDATE_PERIOD = const(15)
 
 
-def log(route, time):
-    print(f"{route}: {time.h}:{time.m} in {time.delta} min")
-
-
-async def wait(delta):
-    await asyncio.sleep(max(delta // 2 * 60, 60))
+def log(route, secs, fresh):
+    pass
+    now = time.time()
+    tm = time.localtime(secs)
+    delta = max((secs - now) // 60, 0)
+    print(f"{route}: {tm[3]}:{tm[4]} in {delta} min {'*' if fresh else ' '}")
 
 
 async def do_87_bus():
     route = "87 Bus"
-    time = get_arrival_times(route.split()[0], teele_sq)[0]
-    log(route, time)
+    bus_87 = MBTA(route.split()[0], TEELE_SQ)
     while True:
-        await wait(time.delta)
-        time = get_arrival_times(route.split()[0], teele_sq)[0]
-        log(route, time)
+        times, fresh = bus_87.get_arrival_times()
+        if len(times):
+            log(route, times[0], fresh)
+        await asyncio.sleep(UPDATE_PERIOD)
 
 
 async def do_88_bus():
     route = "88 Bus"
-    time = get_arrival_times(route.split()[0], teele_sq)[0]
-    log(route, time)
+    bus_88 = MBTA(route.split()[0], TEELE_SQ)
     while True:
-        await wait(time.delta)
-        time = get_arrival_times(route.split()[0], teele_sq)[0]
-        log(route, time)
+        times, fresh = bus_88.get_arrival_times()
+        if len(times):
+            log(route, times[0], fresh)
+        await asyncio.sleep(UPDATE_PERIOD)
 
 
 async def do_red_line():
     route = "Red Line"
-    times = get_arrival_times(route.split()[0], davis_sq)
-    log(route, times[0])
-    log(route, times[1])
+    red_line = MBTA(route.split()[0], DAVIS_SQ)
     while True:
-        await wait(times[1].delta)
-        times = get_arrival_times(route.split()[0], davis_sq)
-        log(route, times[0])
-        log(route, times[1])
+        times, fresh = red_line.get_arrival_times()
+        if len(times) >= 2:
+            log(route, times[0], fresh)
+            log(route, times[1], fresh)
+        await asyncio.sleep(UPDATE_PERIOD)
 
 
 async def main():
